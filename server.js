@@ -4,7 +4,7 @@ import { Bot, InlineKeyboardBuilder } from 'node-telegram-bot-api';
 
 // ១. កំណត់រចនាសម្ព័ន្ធ Bot និង Server
 const TOKEN = process.env.BOT_TOKEN || '9202448869:AAHg8FBIyIBmwFGFk3QB_rpS24VAivm5ajM'; 
-const WEBAPP_URL = process.env.WEBAPP_URL || 'https://evil-monkeys-read.loca.lt'; // ឧទាហរណ៍ URL ពី ngrok, Vercel ឬ Render
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://prompt-miniapp.onrender.com';
 
 const bot = new Bot(TOKEN);
 const app = express();
