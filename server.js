@@ -1,5 +1,6 @@
 // server.js
 import express from 'express';
+import fs from 'fs';
 import { Bot, InlineKeyboardBuilder } from 'node-telegram-bot-api';
 
 // ១. កំណត់រចនាសម្ព័ន្ធ Bot និង Server
@@ -11,13 +12,55 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// In-memory database for demo/session tracking
-const vipUsers = new Set();
-const userOrders = new Map(); // userId -> array of orders
+// Persistent storage for VIP users
+const VIP_FILE = './vip_users.json';
+function loadVipUsers() {
+    try {
+        if (fs.existsSync(VIP_FILE)) {
+            const data = JSON.parse(fs.readFileSync(VIP_FILE, 'utf8'));
+            return new Set(data);
+        }
+    } catch (e) {
+        console.error('Error loading vip users:', e.message);
+    }
+    return new Set();
+}
+function saveVipUsers(set) {
+    try {
+        fs.writeFileSync(VIP_FILE, JSON.stringify(Array.from(set)), 'utf8');
+    } catch (e) {
+        console.error('Error saving vip users:', e.message);
+    }
+}
+const vipUsers = loadVipUsers();
+
+// Persistent storage for Orders
+const ORDERS_FILE = './user_orders.json';
+function loadOrders() {
+    try {
+        if (fs.existsSync(ORDERS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
+            return new Map(Object.entries(data));
+        }
+    } catch (e) {
+        console.error('Error loading orders:', e.message);
+    }
+    return new Map();
+}
+function saveOrders(map) {
+    try {
+        const obj = Object.fromEntries(map);
+        fs.writeFileSync(ORDERS_FILE, JSON.stringify(obj), 'utf8');
+    } catch (e) {
+        console.error('Error saving orders:', e.message);
+    }
+}
+const userOrders = loadOrders();
 
 // ២. Telegram Bot Logic
 bot.command('start', async (ctx) => {
-    await ctx.reply('សូមស្វាគមន៍មកកាន់ Chet Panha VIP Bot! ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Master Prompts និងវគ្គសិក្សាទាំងអស់៖', {
+    const userFirstName = ctx.from?.first_name || 'មិត្តភក្តិ';
+    await ctx.reply(`សូមស្វាគមន៍មកកាន់ Chet Panha VIP Bot, ${userFirstName}! ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Master Prompts និងវគ្គសិក្សាទាំងអស់៖`, {
         reply_markup: new InlineKeyboardBuilder()
             .webApp("បើកកម្មវិធី 🚀", WEBAPP_URL)
             .build()
@@ -36,31 +79,34 @@ app.post('/api/upgrade', async (req, res) => {
     const { userId, itemTitle, amount } = req.body;
     if (userId) {
         vipUsers.add(String(userId));
+        saveVipUsers(vipUsers);
+
         const currentOrders = userOrders.get(String(userId)) || [];
         const newOrder = {
             id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
-            title: itemTitle || 'VIP Master Prompts Package',
+            title: itemTitle || 'Master Prompts សម្រាប់បង្កើតវីដេអូ AI',
             amount: amount || '$2.00',
             date: new Date().toLocaleDateString('km-KH', { year: 'numeric', month: 'short', day: 'numeric' }),
             status: 'ជោគជ័យ (Completed)'
         };
         currentOrders.unshift(newOrder);
         userOrders.set(String(userId), currentOrders);
+        saveOrders(userOrders);
 
         console.log(`User ${userId} បាន Unlock: ${newOrder.title}`);
         try {
             await bot.api.sendMessage({
                 chat_id: userId,
-                text: `🎉 អបអរសាទរ! ការទូទាត់សម្រាប់ "${newOrder.title}" (${newOrder.amount}) ត្រូវបានបញ្ជាក់ជោគជ័យ។ អ្នកអាចចូលទៅកាន់ Mini App ដើម្បីប្រើប្រាស់បានភ្លាមៗ!`
+                text: `🎉 អបអរសាទរ! ការទូទាត់សម្រាប់ "${newOrder.title}" (${newOrder.amount}) ត្រូវបានបញ្ជាក់ជោគជ័យ។ Master Prompt ត្រូវបាន Unlock រួចរាល់ក្នុង Mini App របស់អ្នក! សូមចូលទៅកាន់ Mini App ដើម្បីមើល និង Copy យកទៅប្រើប្រាស់បានភ្លាមៗ!`
             });
         } catch (err) {
             console.error('Bot sendMessage error:', err.message);
         }
     }
-    res.json({ success: true, isVip: true, message: 'Unlocked successfully' });
+    res.json({ success: true, isVip: true, message: 'VIP Unlocked' });
 });
 
-// ៤. Frontend (Telegram Mini App UI with 5 Working Tabs)
+// ៤. Frontend (Telegram Mini App UI)
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="km">
@@ -75,7 +121,7 @@ app.get('/', (req, res) => {
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #0c111d;
+            background-color: #0b0f19;
             color: #f1f5f9;
             font-family: 'Kantumruy Pro', sans-serif;
             -webkit-tap-highlight-color: transparent;
@@ -87,11 +133,9 @@ app.get('/', (req, res) => {
             background: #334155;
             border-radius: 4px;
         }
-        .active-tab {
+        .active-tab-nav {
             color: #38bdf8 !important;
-        }
-        .active-tab-box {
-            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+            border: 1px solid rgba(56, 189, 248, 0.35) !important;
             background: rgba(56, 189, 248, 0.08) !important;
             border-radius: 12px;
         }
@@ -105,21 +149,21 @@ app.get('/', (req, res) => {
         <span id="toastMsg">បានចម្លងដោយជោគជ័យ!</span>
     </div>
 
-    <!-- MAIN APP WRAPPER -->
+    <!-- MAIN APP CONTENT WRAPPER -->
     <div class="w-full">
         
-        <!-- Header / User Profile Bar -->
-        <div class="flex items-center justify-between bg-slate-900/95 border border-slate-800 p-3.5 rounded-2xl mb-4 shadow-lg">
-            <div class="flex items-center gap-3">
+        <!-- Header / User Profile Bar (Dynamically updated per Telegram User) -->
+        <div class="flex items-center justify-between bg-[#121929] border border-slate-800/80 p-3.5 rounded-2xl mb-4 shadow-lg">
+            <div class="flex items-center gap-3 min-w-0">
                 <div id="userAvatarContainer" class="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-lg text-white shadow-md overflow-hidden shrink-0 border border-blue-400/30">
-                    <span id="userInitial">U</span>
+                    <span id="userInitial">...</span>
                 </div>
-                <div>
-                    <h2 id="userName" class="font-bold text-sm text-white leading-tight">Ong Mach</h2>
-                    <p id="userId" class="text-[11px] text-slate-400 font-mono mt-0.5">ID: 880554075</p>
+                <div class="min-w-0">
+                    <h2 id="userName" class="font-bold text-sm text-white leading-tight truncate">កំពុងភ្ជាប់...</h2>
+                    <p id="userId" class="text-[11px] text-slate-400 font-mono mt-0.5 truncate">ID: ...</p>
                 </div>
             </div>
-            <button id="upgradeHeaderBtn" onclick="openPaymentModal('VIP All Access', '$2.00')" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5 shrink-0">
+            <button id="upgradeHeaderBtn" onclick="openPaymentModal('VIP All Access', '$2.00')" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5 shrink-0 ml-2">
                 <span>⚡</span> Upgrade VIP
             </button>
         </div>
@@ -128,10 +172,10 @@ app.get('/', (req, res) => {
         <div id="tabContentHome" class="tab-content space-y-4">
             
             <!-- Hero Banner -->
-            <div class="relative bg-gradient-to-r from-blue-900/80 via-indigo-900/70 to-slate-900 p-4 rounded-2xl border border-blue-500/30 shadow-xl overflow-hidden">
+            <div class="relative bg-gradient-to-r from-blue-950/80 via-indigo-950/70 to-slate-900 p-4 rounded-2xl border border-blue-500/30 shadow-xl overflow-hidden">
                 <div class="relative z-10">
                     <span class="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                        Master VIP 2026
+                        VIP Bot 2026
                     </span>
                     <h3 class="font-bold text-base text-white mt-2 leading-snug">
                         ស្វាគមន៍មកកាន់ Chet Panha VIP Bot!
@@ -140,10 +184,10 @@ app.get('/', (req, res) => {
                         ប្រភព Master Prompts និងវគ្គសិក្សា AI លំដាប់ VIP សម្រាប់បង្កើនចំណូលលើ TikTok, YouTube និង DistroKid។
                     </p>
                     <div class="flex gap-2 mt-3">
-                        <button onclick="switchTabNav('prompts')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded-xl shadow active:scale-95 transition-all">
+                        <button onclick="switchTabNav('prompts')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow active:scale-95 transition-all">
                             🎨 មើល Prompts
                         </button>
-                        <button onclick="switchTabNav('courses')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2 px-3 rounded-xl border border-slate-700 active:scale-95 transition-all">
+                        <button onclick="switchTabNav('courses')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2 px-3.5 rounded-xl border border-slate-700 active:scale-95 transition-all">
                             📚 វគ្គសិក្សា
                         </button>
                     </div>
@@ -152,27 +196,27 @@ app.get('/', (req, res) => {
 
             <!-- Quick Stats -->
             <div class="grid grid-cols-3 gap-2.5 text-center">
-                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                <div class="bg-[#121929] border border-slate-800/80 p-3 rounded-xl">
                     <div class="text-lg font-bold text-blue-400">148+</div>
                     <div class="text-[10px] text-slate-400 mt-0.5">Master Prompts</div>
                 </div>
-                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                <div class="bg-[#121929] border border-slate-800/80 p-3 rounded-xl">
                     <div class="text-lg font-bold text-amber-400">2+</div>
                     <div class="text-[10px] text-slate-400 mt-0.5">វគ្គសិក្សា AI</div>
                 </div>
-                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                <div class="bg-[#121929] border border-slate-800/80 p-3 rounded-xl">
                     <div class="text-lg font-bold text-emerald-400">24/7</div>
                     <div class="text-[10px] text-slate-400 mt-0.5">គាំទ្របច្ចេកទេស</div>
                 </div>
             </div>
 
-            <!-- Featured VIP Prompt Preview -->
-            <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-3.5 shadow-lg">
+            <!-- Featured Master Prompt Card ($2) -->
+            <div class="bg-[#121929] border border-amber-500/30 rounded-2xl p-4 shadow-lg relative overflow-hidden">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                        <span>🔥</span> Prompt កំពុងពេញនិយម
+                        <span>🔥</span> Master Prompt កំពុងពេញនិយម
                     </span>
-                    <span class="text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span class="text-[11px] text-amber-400 font-extrabold bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/30">
                         $2.00
                     </span>
                 </div>
@@ -180,22 +224,23 @@ app.get('/', (req, res) => {
                 <p class="text-xs text-slate-400 mt-1 line-clamp-2">
                     Story to Full Video Package សម្រាប់ ChatGPT, Claude, Sora, Kling, Veo និង Runway។
                 </p>
-                <div class="mt-3 pt-2.5 border-t border-slate-800 flex justify-between items-center">
-                    <span class="text-[11px] text-slate-400">Unlock មើល និង Copy ភ្លាមៗ</span>
-                    <button onclick="handlePromptAction('vip-video')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg active:scale-95 transition-all flex items-center gap-1">
-                        <span>👁️</span> មើល Prompt
+                <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex justify-between items-center">
+                    <span id="homePromptStatus" class="text-[11px] text-slate-400">🔒 ត្រូវបង់ $2.00 ដើម្បី Unlock</span>
+                    <button onclick="handlePromptAction('vip-video')" id="homePromptBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl active:scale-95 transition-all flex items-center gap-1">
+                        <span>👁️</span> មើល
                     </button>
                 </div>
             </div>
+
         </div>
 
         <!-- ==================== TAB 2: 🎨 PROMPTS ==================== -->
-        <div id="tabContentPrompts" class="tab-content hidden space-y-3">
+        <div id="tabContentPrompts" class="tab-content space-y-3">
             
             <!-- Search Bar -->
             <div class="relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-slate-400 text-sm">🔍</span>
-                <input type="text" id="promptSearchInput" oninput="filterPrompts()" placeholder="ស្វែងរក Master Prompt..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                <input type="text" id="promptSearchInput" oninput="filterPrompts()" placeholder="ស្វែងរក Master Prompt..." class="w-full bg-[#121929] border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
             </div>
 
             <!-- Filter Categories -->
@@ -203,10 +248,10 @@ app.get('/', (req, res) => {
                 <button onclick="setPromptFilter('all')" id="filterBtnAll" class="prompt-filter-btn px-3 py-1.5 rounded-xl font-bold bg-blue-600 text-white shrink-0 active:scale-95 transition-all">
                     🔥 ទាំងអស់ (148)
                 </button>
-                <button onclick="setPromptFilter('free')" id="filterBtnFree" class="prompt-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:text-white shrink-0 active:scale-95 transition-all">
+                <button onclick="setPromptFilter('free')" id="filterBtnFree" class="prompt-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-[#121929] text-slate-300 hover:text-white shrink-0 active:scale-95 transition-all">
                     🎁 ឥតគិតថ្លៃ (Free)
                 </button>
-                <button onclick="setPromptFilter('vip')" id="filterBtnVip" class="prompt-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:text-white shrink-0 active:scale-95 transition-all">
+                <button onclick="setPromptFilter('vip')" id="filterBtnVip" class="prompt-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-[#121929] text-slate-300 hover:text-white shrink-0 active:scale-95 transition-all">
                     👑 VIP
                 </button>
             </div>
@@ -214,30 +259,52 @@ app.get('/', (req, res) => {
             <!-- Prompts List -->
             <div id="promptsListContainer" class="space-y-2.5">
 
-                <!-- Prompt 1: Video Master Package ($2.00) -->
-                <div class="prompt-item vip-item bg-slate-900 border border-slate-800 hover:border-amber-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="master prompts ai video veao kling sora">
-                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-purple-700 to-indigo-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden">
-                        <span class="absolute top-1 left-1 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1 rounded">VIP</span>
-                        🎬
+                <!-- 1. Free Prompt: Craftsman -->
+                <div class="prompt-item free-item bg-[#121929] border border-slate-800/80 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ធ្វើវីដេអូ ជាងបង្កើតរបស់ craftsman diy free">
+                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-blue-700 to-indigo-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden border border-blue-500/20">
+                        <span class="absolute top-1 left-1 bg-emerald-500 text-slate-950 text-[9px] font-extrabold px-1.5 rounded">FREE</span>
+                        🛠️
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-xs text-white truncate flex items-center gap-1">
-                            Master Prompts បង្កើតវីដេអូ AI 🔒
+                        <h4 class="font-bold text-xs text-white truncate">
+                            ធ្វើវីដេអូ ជាងបង្កើតរបស់...
                         </h4>
-                        <p class="text-[11px] text-slate-400 truncate mt-0.5">Prompt 1 ប្លង់រឿង + Prompt 2 Sora/Veo...</p>
+                        <p class="text-[11px] text-slate-400 truncate mt-0.5">You are an expert AI DIY craftsman...</p>
                         <div class="flex items-center justify-between mt-1.5">
-                            <span class="text-emerald-400 text-xs font-bold">$2.00</span>
-                            <button onclick="handlePromptAction('vip-video')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
+                            <span class="text-blue-400 text-xs font-semibold">ឥតគិតថ្លៃ (Free)</span>
+                            <button onclick="handlePromptAction('free-1')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
                                 <span>👁️</span> មើល
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Prompt 2: Claude AI Video ($2.00) -->
-                <div class="prompt-item vip-item bg-slate-900 border border-slate-800 hover:border-amber-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="claude ai វីដេអូ">
-                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden">
-                        <span class="absolute top-1 left-1 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1 rounded">VIP</span>
+                <!-- 2. VIP Prompt $2.00: Master Prompts AI Video -->
+                <div id="cardVipVideo" class="prompt-item vip-item bg-[#121929] border border-slate-800/80 hover:border-amber-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="master prompts ai video veao kling sora $2 2$">
+                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-amber-600 to-orange-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden border border-amber-500/30">
+                        <span class="absolute top-1 left-1 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1.5 rounded">VIP</span>
+                        🎬
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 id="cardVipVideoTitle" class="font-bold text-xs text-white truncate flex items-center gap-1">
+                            Master Prompts បង្កើតវីដេអូ AI 🔒
+                        </h4>
+                        <p id="cardVipVideoSubtitle" class="text-[11px] text-slate-400 truncate mt-0.5">
+                            ខ្លឹមសារត្រូវបានចាក់សោរ (ចុចមើលដើម្បីបង់ប្រាក់ $2)...
+                        </p>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span class="text-emerald-400 text-xs font-bold">$2.00</span>
+                            <button onclick="handlePromptAction('vip-video')" id="cardVipVideoBtn" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
+                                <span>👁️</span> មើល
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. VIP Prompt $2.00: Claude AI Video -->
+                <div class="prompt-item vip-item bg-[#121929] border border-slate-800/80 hover:border-amber-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ប្រើ claude ai បង្កើតវីដេអូ $2 2$">
+                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-purple-700 to-indigo-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden border border-purple-500/30">
+                        <span class="absolute top-1 left-1 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1.5 rounded">VIP</span>
                         🤖
                     </div>
                     <div class="flex-1 min-w-0">
@@ -254,10 +321,10 @@ app.get('/', (req, res) => {
                     </div>
                 </div>
 
-                <!-- Prompt 3: Voice Cartoon ($1.00) -->
-                <div class="prompt-item vip-item bg-slate-900 border border-slate-800 hover:border-amber-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="របៀបបង្កើតសំឡេង តុក្កតា cartoon voice">
-                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-pink-600 to-rose-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden">
-                        <span class="absolute top-1 left-1 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1 rounded">VIP</span>
+                <!-- 4. VIP Prompt $1.00: Cartoon Voice -->
+                <div class="prompt-item vip-item bg-[#121929] border border-slate-800/80 hover:border-amber-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="របៀបបង្កើតសំឡេង តុក្កតា cartoon voice $1">
+                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-pink-600 to-rose-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden border border-pink-500/30">
+                        <span class="absolute top-1 left-1 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1.5 rounded">VIP</span>
                         🎙️
                     </div>
                     <div class="flex-1 min-w-0">
@@ -274,30 +341,10 @@ app.get('/', (req, res) => {
                     </div>
                 </div>
 
-                <!-- Prompt 4: Free Craftsman -->
-                <div class="prompt-item free-item bg-slate-900 border border-slate-800 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ធ្វើវីដេអូ ជាងបង្កើតរបស់ craftsman diy">
-                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-blue-700 to-cyan-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden">
-                        <span class="absolute top-1 left-1 bg-emerald-400 text-slate-950 text-[9px] font-extrabold px-1 rounded">FREE</span>
-                        🛠️
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-xs text-white truncate">
-                            ធ្វើវីដេអូ ជាងបង្កើតរបស់...
-                        </h4>
-                        <p class="text-[11px] text-slate-400 truncate mt-0.5">You are an expert AI DIY craftsman...</p>
-                        <div class="flex items-center justify-between mt-1.5">
-                            <span class="text-emerald-400 text-xs font-bold">ឥតគិតថ្លៃ (Free)</span>
-                            <button onclick="handlePromptAction('free-1')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
-                                <span>👁️</span> មើល
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Prompt 5: Free Mom Teaching -->
-                <div class="prompt-item free-item bg-slate-900 border border-slate-800 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ធ្វើវីដេអូ ai ម៉ាក់ៗបង្រៀន mom teaching education">
-                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-teal-700 to-emerald-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden">
-                        <span class="absolute top-1 left-1 bg-emerald-400 text-slate-950 text-[9px] font-extrabold px-1 rounded">FREE</span>
+                <!-- 5. Free Prompt: Mom Teaching -->
+                <div class="prompt-item free-item bg-[#121929] border border-slate-800/80 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ធ្វើវីដេអូ ai ម៉ាក់ៗបង្រៀន mom teaching education free">
+                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-teal-700 to-emerald-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden border border-teal-500/20">
+                        <span class="absolute top-1 left-1 bg-emerald-500 text-slate-950 text-[9px] font-extrabold px-1.5 rounded">FREE</span>
                         👩‍🏫
                     </div>
                     <div class="flex-1 min-w-0">
@@ -306,7 +353,7 @@ app.get('/', (req, res) => {
                         </h4>
                         <p class="text-[11px] text-slate-400 truncate mt-0.5">Prompt បង្កើតវីដេអូបង្រៀនបែបកុមារ...</p>
                         <div class="flex items-center justify-between mt-1.5">
-                            <span class="text-emerald-400 text-xs font-bold">ឥតគិតថ្លៃ (Free)</span>
+                            <span class="text-blue-400 text-xs font-semibold">ឥតគិតថ្លៃ (Free)</span>
                             <button onclick="handlePromptAction('free-2')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
                                 <span>👁️</span> មើល
                             </button>
@@ -320,14 +367,13 @@ app.get('/', (req, res) => {
         <!-- ==================== TAB 3: 📚 វគ្គសិក្សា (COURSES) ==================== -->
         <div id="tabContentCourses" class="tab-content hidden space-y-3">
             
-            <!-- Search Bar -->
             <div class="relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-slate-400 text-sm">🔍</span>
-                <input type="text" id="courseSearchInput" oninput="filterCourses()" placeholder="ស្វែងរកវគ្គសិក្សា..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                <input type="text" id="courseSearchInput" oninput="filterCourses()" placeholder="ស្វែងរកវគ្គសិក្សា..." class="w-full bg-[#121929] border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
             </div>
 
-            <!-- Course Card 1: YouTube -->
-            <div class="course-item bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3" data-title="មេរៀនរកលុយតាម youtube វគ្គសិក្សា">
+            <!-- YouTube Course -->
+            <div class="course-item bg-[#121929] border border-slate-800/80 rounded-2xl p-3.5 space-y-3" data-title="មេរៀនរកលុយតាម youtube វគ្គសិក្សា">
                 <div class="flex gap-3">
                     <div class="w-24 h-24 rounded-xl bg-gradient-to-tr from-red-600 to-rose-900 flex flex-col items-center justify-center text-center p-2 shrink-0 border border-red-500/30">
                         <span class="text-3xl">▶️</span>
@@ -341,7 +387,7 @@ app.get('/', (req, res) => {
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
                     <div>
                         <span class="text-xs text-slate-400 line-through mr-1">$120.00</span>
                         <span class="text-emerald-400 font-extrabold text-sm">$39.00</span>
@@ -352,8 +398,8 @@ app.get('/', (req, res) => {
                 </div>
             </div>
 
-            <!-- Course Card 2: DistroKid -->
-            <div class="course-item bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3" data-title="មេរៀនរកលុយតាម distrokid suno ai">
+            <!-- DistroKid Course -->
+            <div class="course-item bg-[#121929] border border-slate-800/80 rounded-2xl p-3.5 space-y-3" data-title="មេរៀនរកលុយតាម distrokid suno ai">
                 <div class="flex gap-3">
                     <div class="w-24 h-24 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-900 flex flex-col items-center justify-center text-center p-2 shrink-0 border border-purple-500/30">
                         <span class="text-3xl">🎵</span>
@@ -367,7 +413,7 @@ app.get('/', (req, res) => {
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
                     <div>
                         <span class="text-xs text-slate-400 line-through mr-1">$75.00</span>
                         <span class="text-emerald-400 font-extrabold text-sm">$29.00</span>
@@ -395,11 +441,11 @@ app.get('/', (req, res) => {
             <!-- Search Bar in History -->
             <div class="relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-slate-400 text-sm">🔍</span>
-                <input type="text" id="orderSearchInput" oninput="filterOrders()" placeholder="ស្វែងរកក្នុងប្រវត្តិទិញ..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                <input type="text" id="orderSearchInput" oninput="filterOrders()" placeholder="ស្វែងរកក្នុងប្រវត្តិទិញ..." class="w-full bg-[#121929] border border-slate-800/80 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
             </div>
 
             <!-- Empty State -->
-            <div id="emptyOrderState" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 text-center space-y-2">
+            <div id="emptyOrderState" class="bg-[#121929] border border-slate-800/80 rounded-2xl p-8 text-center space-y-2">
                 <span class="text-4xl">📬</span>
                 <p class="text-xs text-slate-400">មិនមានទិន្នន័យប្រវត្តិទិញត្រូវស្វែងរកឡើយ។</p>
                 <button onclick="switchTabNav('prompts')" class="text-xs font-bold text-blue-400 hover:underline pt-2">
@@ -417,12 +463,12 @@ app.get('/', (req, res) => {
         <div id="tabContentProfile" class="tab-content hidden space-y-4">
             
             <!-- User Profile Big Card -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center relative overflow-hidden">
-                <div id="profilePhotoLarge" class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center font-bold text-3xl text-white shadow-xl mb-3 border-2 border-blue-400/40">
-                    <span id="profileInitial">O</span>
+            <div class="bg-[#121929] border border-slate-800/80 rounded-2xl p-5 text-center relative overflow-hidden">
+                <div id="profilePhotoLarge" class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center font-bold text-3xl text-white shadow-xl mb-3 border-2 border-blue-400/40 overflow-hidden">
+                    <span id="profileInitial">...</span>
                 </div>
-                <h3 id="profileName" class="font-bold text-base text-white">Ong Mach</h3>
-                <p id="profileTelegramId" class="text-xs text-slate-400 font-mono mt-0.5">Telegram ID: 880554075</p>
+                <h3 id="profileName" class="font-bold text-base text-white">កំពុងភ្ជាប់...</h3>
+                <p id="profileTelegramId" class="text-xs text-slate-400 font-mono mt-0.5">Telegram ID: ...</p>
 
                 <!-- Current Plan Box -->
                 <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mt-4 text-center">
@@ -438,7 +484,7 @@ app.get('/', (req, res) => {
             <!-- Profile Menu Links -->
             <div class="space-y-2 text-xs">
                 
-                <button onclick="openExternalTelegram('https://t.me/chetpanhavipbot')" class="w-full bg-slate-900 hover:bg-slate-800/80 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-slate-200 transition-all active:scale-[0.99]">
+                <button onclick="openExternalTelegram('https://t.me/chetpanhavipbot')" class="w-full bg-[#121929] hover:bg-slate-800 border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between text-slate-200 transition-all active:scale-[0.99]">
                     <div class="flex items-center gap-3">
                         <span class="text-base">📢</span>
                         <span class="font-medium">ចូលរួម Community Telegram Channel</span>
@@ -446,7 +492,7 @@ app.get('/', (req, res) => {
                     <span class="text-slate-500">➔</span>
                 </button>
 
-                <button onclick="openExternalTelegram('https://t.me/ongmach2019')" class="w-full bg-slate-900 hover:bg-slate-800/80 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-slate-200 transition-all active:scale-[0.99]">
+                <button onclick="openExternalTelegram('https://t.me/ongmach2019')" class="w-full bg-[#121929] hover:bg-slate-800 border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between text-slate-200 transition-all active:scale-[0.99]">
                     <div class="flex items-center gap-3">
                         <span class="text-base">👤</span>
                         <span class="font-medium">ទាក់ទងទៅ Admin</span>
@@ -454,7 +500,7 @@ app.get('/', (req, res) => {
                     <span class="text-slate-500">➔</span>
                 </button>
 
-                <button onclick="openTermsModal()" class="w-full bg-slate-900 hover:bg-slate-800/80 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-slate-200 transition-all active:scale-[0.99]">
+                <button onclick="openTermsModal()" class="w-full bg-[#121929] hover:bg-slate-800 border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between text-slate-200 transition-all active:scale-[0.99]">
                     <div class="flex items-center gap-3">
                         <span class="text-base">📜</span>
                         <span class="font-medium">លក្ខខណ្ឌនៃការប្រើប្រាស់ (Terms & Services)</span>
@@ -469,8 +515,8 @@ app.get('/', (req, res) => {
     </div>
 
     <!-- ==================== BOTTOM NAVIGATION BAR (5 TABS) ==================== -->
-    <div class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/80 flex justify-around py-2.5 px-2 text-[11px] text-slate-400 z-40 max-w-md mx-auto">
-        <button onclick="switchTabNav('home')" id="navBtnHome" class="nav-btn flex flex-col items-center gap-1 active-tab">
+    <div class="fixed bottom-0 left-0 right-0 bg-[#0c111e]/95 backdrop-blur-xl border-t border-slate-800/80 flex justify-around py-2.5 px-2 text-[11px] text-slate-400 z-40 max-w-md mx-auto">
+        <button onclick="switchTabNav('home')" id="navBtnHome" class="nav-btn flex flex-col items-center gap-1 active-tab-nav">
             <span class="text-lg">🏠</span>
             <span>ទំព័រដើម</span>
         </button>
@@ -496,7 +542,7 @@ app.get('/', (req, res) => {
 
     <!-- 1. Universal Payment Modal (ABA QR) -->
     <div id="paymentModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm p-5 shadow-2xl relative max-h-[92vh] overflow-y-auto custom-scrollbar">
+        <div class="bg-[#121929] border border-slate-700 rounded-3xl w-full max-w-sm p-5 shadow-2xl relative max-h-[92vh] overflow-y-auto custom-scrollbar">
             <button onclick="closeModal('paymentModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">
                 ✕
             </button>
@@ -513,7 +559,7 @@ app.get('/', (req, res) => {
             </div>
 
             <!-- Account Details -->
-            <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700 text-xs mb-3 space-y-1.5">
+            <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800 text-xs mb-3 space-y-1.5">
                 <div class="flex justify-between">
                     <span class="text-slate-400">ឈ្មោះគណនី:</span>
                     <span class="font-bold text-white">MACH ONG</span>
@@ -526,7 +572,7 @@ app.get('/', (req, res) => {
                     <span class="text-slate-400">គណនី KHR (៛):</span>
                     <span class="font-bold text-amber-400 tracking-wider">500 633 436</span>
                 </div>
-                <div class="flex justify-between pt-1 border-t border-slate-700">
+                <div class="flex justify-between pt-1 border-t border-slate-800">
                     <span class="text-slate-400">ចំនួនទឹកប្រាក់:</span>
                     <span id="paymentModalAmount" class="font-extrabold text-amber-400 text-sm">$2.00</span>
                 </div>
@@ -544,9 +590,9 @@ app.get('/', (req, res) => {
         </div>
     </div>
 
-    <!-- 2. Master Prompt Viewer Modal -->
+    <!-- 2. Master Prompt Viewer Modal (Only unlocked prompts can be seen) -->
     <div id="promptModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg p-5 shadow-2xl relative max-h-[92vh] flex flex-col">
+        <div class="bg-[#121929] border border-slate-700 rounded-3xl w-full max-w-lg p-5 shadow-2xl relative max-h-[92vh] flex flex-col">
             
             <div class="flex items-start justify-between pb-3 border-b border-slate-800">
                 <div>
@@ -562,7 +608,7 @@ app.get('/', (req, res) => {
             </div>
 
             <!-- Viewer Tabs -->
-            <div id="viewerTabsHeader" class="flex gap-1.5 my-3 bg-slate-800/80 p-1 rounded-xl text-xs overflow-x-auto custom-scrollbar shrink-0">
+            <div id="viewerTabsHeader" class="flex gap-1.5 my-3 bg-slate-900/90 p-1 rounded-xl text-xs overflow-x-auto custom-scrollbar shrink-0">
                 <button onclick="switchViewerSubTab('viewHowTo')" id="btnViewHowTo" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold bg-amber-400 text-slate-950 transition-all shrink-0">
                     📖 របៀបប្រើ
                 </button>
@@ -632,7 +678,7 @@ app.get('/', (req, res) => {
 
     <!-- 3. Terms & Services Modal -->
     <div id="termsModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm p-5 shadow-2xl relative max-h-[85vh] flex flex-col">
+        <div class="bg-[#121929] border border-slate-700 rounded-3xl w-full max-w-sm p-5 shadow-2xl relative max-h-[85vh] flex flex-col">
             <button onclick="closeModal('termsModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">
                 ✕
             </button>
@@ -655,6 +701,7 @@ app.get('/', (req, res) => {
         // ១. Telegram WebApp Init
         const tg = window.Telegram?.WebApp;
         if (tg) {
+            tg.ready();
             tg.expand();
         }
 
@@ -662,8 +709,8 @@ app.get('/', (req, res) => {
 
         // State
         const user = tg?.initDataUnsafe?.user;
-        let isVip = localStorage.getItem('promptvip_is_vip') === 'true';
-        let currentPayingItem = { title: 'VIP Master Prompts', amount: '$2.00' };
+        let isVip = false;
+        let currentPayingItem = { title: 'Master Prompts សម្រាប់បង្កើតវីដេអូ AI', amount: '$2.00' };
 
         // Prompts Database
         const promptsData = {
@@ -752,53 +799,90 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
 
         let currentActivePromptKey = 'vip-video';
 
-        // ២. អាប់ដេតព័ត៌មានអ្នកប្រើប្រាស់ពី Telegram
-        if (user) {
-            const fullName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-            const initial = user.first_name ? user.first_name.charAt(0) : 'U';
+        // ២. អាប់ដេតព័ត៌មានអ្នកប្រើប្រាស់តាមគណនី Telegram ជាក់ស្ដែង (Dynamic User Profile)
+        function initUserProfile() {
+            if (user && user.id) {
+                const fullName = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : '');
+                const displayName = fullName.trim() || user.username || 'Telegram User';
+                const initial = user.first_name ? user.first_name.charAt(0).toUpperCase() : (user.username ? user.username.charAt(0).toUpperCase() : 'U');
 
-            document.getElementById('userName').innerText = fullName;
-            document.getElementById('userId').innerText = 'ID: ' + user.id;
-            document.getElementById('profileName').innerText = fullName;
-            document.getElementById('profileTelegramId').innerText = 'Telegram ID: ' + user.id;
+                document.getElementById('userName').innerText = displayName;
+                document.getElementById('userId').innerText = 'ID: ' + user.id;
+                document.getElementById('profileName').innerText = displayName;
+                document.getElementById('profileTelegramId').innerText = 'Telegram ID: ' + user.id;
 
-            if (user.photo_url) {
-                document.getElementById('userAvatarContainer').innerHTML = \`<img src="\${user.photo_url}" class="w-full h-full object-cover">\`;
-                document.getElementById('profilePhotoLarge').innerHTML = \`<img src="\${user.photo_url}" class="w-full h-full object-cover rounded-full">\`;
+                if (user.photo_url) {
+                    document.getElementById('userAvatarContainer').innerHTML = \`<img src="\${user.photo_url}" class="w-full h-full object-cover">\`;
+                    document.getElementById('profilePhotoLarge').innerHTML = \`<img src="\${user.photo_url}" class="w-full h-full object-cover rounded-full">\`;
+                } else {
+                    document.getElementById('userInitial').innerText = initial;
+                    document.getElementById('profileInitial').innerText = initial;
+                }
+
+                // Check localStorage first
+                if (localStorage.getItem('promptvip_is_vip_' + user.id) === 'true') {
+                    setVipActive();
+                }
+
+                // Check VIP & Orders from backend
+                fetch('/api/status/' + user.id)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.isVip) {
+                            setVipActive();
+                        }
+                        if (data.orders && data.orders.length > 0) {
+                            saveOrdersToStorage(data.orders);
+                        }
+                    })
+                    .catch(() => {});
             } else {
-                document.getElementById('userInitial').innerText = initial;
-                document.getElementById('profileInitial').innerText = initial;
+                // If opened outside Telegram
+                document.getElementById('userName').innerText = 'ភ្ញៀវ (Guest)';
+                document.getElementById('userId').innerText = 'ID: Telegram Mini App';
+                document.getElementById('profileName').innerText = 'ភ្ញៀវ (Guest)';
+                document.getElementById('profileTelegramId').innerText = 'Telegram ID: None';
+                document.getElementById('userInitial').innerText = 'G';
+                document.getElementById('profileInitial').innerText = 'G';
             }
-
-            // Fetch VIP & Orders status from server
-            fetch('/api/status/' + user.id)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.isVip) setVipActive();
-                    if (data.orders && data.orders.length > 0) {
-                        saveOrdersToStorage(data.orders);
-                    }
-                })
-                .catch(() => {});
         }
 
-        if (isVip) {
-            setVipActive();
-        }
+        initUserProfile();
         renderOrders();
 
         function setVipActive() {
             isVip = true;
-            localStorage.setItem('promptvip_is_vip', 'true');
+            if (user && user.id) {
+                localStorage.setItem('promptvip_is_vip_' + user.id, 'true');
+            }
             const hBtn = document.getElementById('upgradeHeaderBtn');
             if (hBtn) {
                 hBtn.innerHTML = "👑 VIP Member";
-                hBtn.className = "bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow-md pointer-events-none";
+                hBtn.className = "bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow-md pointer-events-none shrink-0 ml-2";
             }
             const planTitle = document.getElementById('planBadgeTitle');
             const planDesc = document.getElementById('planBadgeDesc');
             if (planTitle) planTitle.innerText = "⭐ គណនី VIP (VIP Plan)";
-            if (planDesc) planDesc.innerText = "អ្នកអាចប្រើប្រាស់ Master Prompts ទាំងអស់បាន!";
+            if (planDesc) planDesc.innerText = "អ្នកបានដោះសោរ Master Prompts រួចរាល់!";
+
+            // Update VIP Prompt card to Unlocked state
+            const cardTitle = document.getElementById('cardVipVideoTitle');
+            const cardSub = document.getElementById('cardVipVideoSubtitle');
+            const cardBtn = document.getElementById('cardVipVideoBtn');
+            if (cardTitle) cardTitle.innerHTML = 'Master Prompts បង្កើតវីដេអូ AI <span class="text-emerald-400">✅</span>';
+            if (cardSub) cardSub.innerText = 'បានដោះសោររួចរាល់ • ចុចដើម្បីចម្លងយកទៅប្រើ';
+            if (cardBtn) {
+                cardBtn.className = "bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all";
+                cardBtn.innerHTML = "<span>✨</span> បើកមើល & Copy";
+            }
+
+            const homeStatus = document.getElementById('homePromptStatus');
+            const homeBtn = document.getElementById('homePromptBtn');
+            if (homeStatus) homeStatus.innerText = "✅ បានដោះសោររួចរាល់";
+            if (homeBtn) {
+                homeBtn.className = "bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl active:scale-95 transition-all flex items-center gap-1";
+                homeBtn.innerHTML = "<span>✨</span> Copy Prompt";
+            }
         }
 
         // ៣. Tab Navigation Switching
@@ -810,32 +894,35 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
 
             if (tab === 'home') {
                 document.getElementById('tabContentHome').classList.remove('hidden');
-                document.getElementById('navBtnHome').className = "nav-btn flex flex-col items-center gap-1 active-tab font-bold";
+                document.getElementById('navBtnHome').className = "nav-btn flex flex-col items-center gap-1 active-tab-nav font-bold";
             } else if (tab === 'prompts') {
                 document.getElementById('tabContentPrompts').classList.remove('hidden');
-                document.getElementById('navBtnPrompts').className = "nav-btn flex flex-col items-center gap-1 active-tab font-bold";
+                document.getElementById('navBtnPrompts').className = "nav-btn flex flex-col items-center gap-1 active-tab-nav font-bold";
             } else if (tab === 'courses') {
                 document.getElementById('tabContentCourses').classList.remove('hidden');
-                document.getElementById('navBtnCourses').className = "nav-btn flex flex-col items-center gap-1 active-tab font-bold";
+                document.getElementById('navBtnCourses').className = "nav-btn flex flex-col items-center gap-1 active-tab-nav font-bold";
             } else if (tab === 'history') {
                 document.getElementById('tabContentHistory').classList.remove('hidden');
-                document.getElementById('navBtnHistory').className = "nav-btn flex flex-col items-center gap-1 active-tab font-bold";
+                document.getElementById('navBtnHistory').className = "nav-btn flex flex-col items-center gap-1 active-tab-nav font-bold";
                 renderOrders();
             } else if (tab === 'profile') {
                 document.getElementById('tabContentProfile').classList.remove('hidden');
-                document.getElementById('navBtnProfile').className = "nav-btn flex flex-col items-center gap-1 active-tab font-bold";
+                document.getElementById('navBtnProfile').className = "nav-btn flex flex-col items-center gap-1 active-tab-nav font-bold";
             }
         }
 
-        // ៤. Prompt Actions (View or Buy)
+        // ៤. Prompt Actions (បង់លុយសិន ទើបអាចមើលឃើញ និង Copy បាន)
         function handlePromptAction(key) {
             const p = promptsData[key];
             if (!p) return;
             currentActivePromptKey = key;
 
+            // ប្រសិនបើជា VIP Prompt ហើយមិនទាន់បានបង់លុយ ($2)
             if (p.isVip && !isVip) {
+                // បើកផ្ទាំង ABA QR Code ទូទាត់ប្រាក់ភ្លាម មិនឱ្យឃើញ Prompt ឡើយ!
                 openPaymentModal(p.title, p.badge);
             } else {
+                // ប្រសិនបើជា Free Prompt ឬបានបង់លុយ Unlock រួចហើយ ទើបអនុញ្ញាតឱ្យបើកមើល និង Copy
                 openPromptViewer(key);
             }
         }
@@ -872,7 +959,7 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
             }
         }
 
-        // ៥. Modals & Payments
+        // ៥. Modals & Payments (ABA QR Code)
         function openPaymentModal(title, amount) {
             currentPayingItem = { title: title || 'VIP Package', amount: amount || '$2.00' };
             document.getElementById('paymentModalItemTitle').innerText = currentPayingItem.title;
@@ -908,10 +995,11 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
             }
         }
 
+        // បន្ទាប់ពីបង់ប្រាក់រួច ចុចបញ្ជាក់ => Unlock => អនុញ្ញាតឱ្យមើល និង Copy Prompt ភ្លាមៗ!
         function confirmCurrentPayment() {
             const confirmMsg = "តើអ្នកបានទូទាត់ប្រាក់ " + currentPayingItem.amount + " តាម ABA រួចរាល់ហើយមែនទេ?";
             const doConfirm = () => {
-                const userId = user?.id || 'user_' + Date.now();
+                const userId = user?.id || 'guest_' + Date.now();
                 fetch('/api/upgrade', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -926,8 +1014,9 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
                     setVipActive();
                     recordLocalOrder(currentPayingItem.title, currentPayingItem.amount);
                     closeModal('paymentModal');
-                    showToast('🎉 ទូទាត់ជោគជ័យ! បាន Unlock រួចរាល់');
+                    showToast('🎉 ទូទាត់ជោគជ័យ! Master Prompt បាន Unlock រួចរាល់');
                     setTimeout(() => {
+                        // បើក Prompt ឱ្យមើល និង Copy ភ្លាមៗ
                         openPromptViewer(currentActivePromptKey);
                     }, 400);
                 })
@@ -958,20 +1047,23 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
                 date: new Date().toLocaleDateString('km-KH'),
                 status: 'ជោគជ័យ (Completed)'
             });
-            localStorage.setItem('promptvip_orders', JSON.stringify(orders));
+            const storageKey = user?.id ? 'promptvip_orders_' + user.id : 'promptvip_orders_guest';
+            localStorage.setItem(storageKey, JSON.stringify(orders));
             renderOrders();
         }
 
         function getLocalOrders() {
             try {
-                return JSON.parse(localStorage.getItem('promptvip_orders')) || [];
+                const storageKey = user?.id ? 'promptvip_orders_' + user.id : 'promptvip_orders_guest';
+                return JSON.parse(localStorage.getItem(storageKey)) || [];
             } catch {
                 return [];
             }
         }
 
         function saveOrdersToStorage(orders) {
-            localStorage.setItem('promptvip_orders', JSON.stringify(orders));
+            const storageKey = user?.id ? 'promptvip_orders_' + user.id : 'promptvip_orders_guest';
+            localStorage.setItem(storageKey, JSON.stringify(orders));
             renderOrders();
         }
 
@@ -993,7 +1085,7 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
                 emptyEl?.classList.add('hidden');
                 listEl.classList.remove('hidden');
                 listEl.innerHTML = orders.map(o => \`
-                    <div class="order-item bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between" data-title="\${o.title.toLowerCase()}">
+                    <div class="order-item bg-[#121929] border border-slate-800/80 p-3.5 rounded-2xl flex items-center justify-between" data-title="\${o.title.toLowerCase()}">
                         <div class="space-y-0.5">
                             <span class="text-[10px] text-slate-400 font-mono">#\${o.id} • \${o.date}</span>
                             <h4 class="font-bold text-xs text-white">\${o.title}</h4>
@@ -1025,7 +1117,7 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
 
         function setPromptFilter(type) {
             document.querySelectorAll('.prompt-filter-btn').forEach(b => {
-                b.className = "prompt-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:text-white shrink-0 active:scale-95 transition-all";
+                b.className = "prompt-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-[#121929] text-slate-300 hover:text-white shrink-0 active:scale-95 transition-all";
             });
 
             if (type === 'all') {
@@ -1060,7 +1152,7 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
             });
         }
 
-        // ៨. Copy Functions
+        // ៨. Copy Functions (ចម្លង Prompt ទៅ Clipboard)
         function copyText(text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {
@@ -1088,7 +1180,7 @@ Negative: blurry, distorted, warped shapes, flickering, extra fingers, text, wat
         function copyFullPromptPackage() {
             const p = promptsData[currentActivePromptKey];
             if (!p) return;
-            const full = \`=== \${p.title} ===\\n\\n[របៀបប្រើប្រាស់]:\\n\${p.howTo}\\n\\n[PROMPT 1]:\\n\${p.p1}\\n\\n[PROMPT 2]:\\n\${p.p2}\\n\\n[TIPS & CONSISTENCY]:\\n\${p.tips}\`;
+            const full = \`=== \${p.title} ===\\n\\n[របៀបប្រើប្រាស់]:\\n\${p.howTo}\\n\\n[PROMPT 1: Story to Full Video Package]:\\n\${p.p1}\\n\\n[PROMPT 2: One Scene for Video Tool]:\\n\${p.p2}\\n\\n[CONSISTENCY LINES & TIPS]:\\n\${p.tips}\`;
             copyText(full);
         }
 
