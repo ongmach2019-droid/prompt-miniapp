@@ -266,5 +266,13 @@ app.listen(PORT, '0.0.0.0', () => {
     bot.startPolling().catch(err => {
         console.error("Bot polling error:", err);
     });
+    // Set persistent menu button
+    bot.api.setChatMenuButton({
+        menu_button: {
+            type: 'web_app',
+            text: 'បើកកម្មវិធី 🚀',
+            web_app: { url: WEBAPP_URL }
+        }
+    }).catch(err => console.error("Menu button error:", err.message));
     console.log("Telegram bot polling started. Admin ID: " + ADMIN_ID);
 });
