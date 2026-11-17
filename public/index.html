@@ -42,7 +42,7 @@
     <!-- MAIN APP CONTENT WRAPPER -->
     <div class="w-full">
         
-        <!-- Header / User Profile Bar (Dynamically updated per Telegram User) -->
+        <!-- Header / User Profile Bar -->
         <div class="flex items-center justify-between bg-[#121929] border border-slate-800/80 p-3.5 rounded-2xl mb-4 shadow-lg">
             <div class="flex items-center gap-3 min-w-0">
                 <div id="userAvatarContainer" class="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-lg text-white shadow-md overflow-hidden shrink-0 border border-blue-400/30">
@@ -430,53 +430,101 @@
 
     <!-- ==================== MODALS ==================== -->
 
-    <!-- 1. Universal Payment Modal (ABA QR) -->
+    <!-- 1. Universal Payment Modal with Slip Upload & Admin Verification -->
     <div id="paymentModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[#121929] border border-slate-700 rounded-3xl w-full max-w-sm p-5 shadow-2xl relative max-h-[92vh] overflow-y-auto custom-scrollbar">
             <button onclick="closeModal('paymentModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">
                 ✕
             </button>
 
-            <div class="text-center mb-3">
-                <span class="text-3xl">💎</span>
-                <h3 id="paymentModalItemTitle" class="font-bold text-base text-white mt-1">ដោះសោរ Master Prompt</h3>
-                <p class="text-xs text-slate-400 mt-0.5">ស្កេនទូទាត់ប្រាក់តាមរយៈ ABA KHQR</p>
-            </div>
+            <!-- State A: Payment & Upload Form -->
+            <div id="paymentFormState">
+                <div class="text-center mb-2.5">
+                    <span class="text-3xl">💎</span>
+                    <h3 id="paymentModalItemTitle" class="font-bold text-base text-white mt-1">ដោះសោរ Master Prompt</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">ស្កេនទូទាត់ប្រាក់តាមរយៈ ABA KHQR</p>
+                </div>
 
-            <!-- QR Code Display -->
-            <div class="bg-white p-2.5 rounded-2xl shadow-inner max-w-[220px] mx-auto mb-3">
-                <img src="/aba-qr.png" alt="ABA QR Code" class="w-full h-auto rounded-lg mx-auto">
-            </div>
+                <!-- QR Code Display -->
+                <div class="bg-white p-2.5 rounded-2xl shadow-inner max-w-[210px] mx-auto mb-3">
+                    <img src="/aba-qr.png" alt="ABA QR Code" class="w-full h-auto rounded-lg mx-auto">
+                </div>
 
-            <!-- Account Details -->
-            <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800 text-xs mb-3 space-y-1.5">
-                <div class="flex justify-between">
-                    <span class="text-slate-400">ឈ្មោះគណនី:</span>
-                    <span class="font-bold text-white">MACH ONG</span>
+                <!-- Account Details -->
+                <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800 text-xs mb-3 space-y-1.5">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">ឈ្មោះគណនី:</span>
+                        <span class="font-bold text-white">MACH ONG</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">គណនី USD ($):</span>
+                        <span class="font-bold text-emerald-400 tracking-wider">003 528 193</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">គណនី KHR (៛):</span>
+                        <span class="font-bold text-amber-400 tracking-wider">500 633 436</span>
+                    </div>
+                    <div class="flex justify-between pt-1 border-t border-slate-800">
+                        <span class="text-slate-400">ចំនួនទឹកប្រាក់:</span>
+                        <span id="paymentModalAmount" class="font-extrabold text-amber-400 text-sm">$2.00</span>
+                    </div>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-400">គណនី USD ($):</span>
-                    <span class="font-bold text-emerald-400 tracking-wider">003 528 193</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-400">គណនី KHR (៛):</span>
-                    <span class="font-bold text-amber-400 tracking-wider">500 633 436</span>
-                </div>
-                <div class="flex justify-between pt-1 border-t border-slate-800">
-                    <span class="text-slate-400">ចំនួនទឹកប្រាក់:</span>
-                    <span id="paymentModalAmount" class="font-extrabold text-amber-400 text-sm">$2.00</span>
-                </div>
-            </div>
 
-            <!-- Action Buttons -->
-            <div class="space-y-2">
-                <button onclick="openABALink()" class="w-full bg-[#00527c] hover:bg-[#004266] text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                    <span>🔗</span> បើកក្នុង ABA Mobile App
+                <!-- Step 1: Open App Button -->
+                <button onclick="openABALink()" class="w-full mb-3 bg-[#00527c] hover:bg-[#004266] text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                    <span>🔗</span> បើកក្នុង ABA Mobile App ដើម្បីបង់
                 </button>
-                <button onclick="confirmCurrentPayment()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                    <span>✅</span> ខ្ញុំបានបង់ប្រាក់រួចរាល់
+
+                <!-- Step 2: Upload Receipt Section -->
+                <div class="border-t border-slate-800/80 pt-3">
+                    <div class="text-[11px] font-bold text-amber-400 mb-1.5 flex items-center gap-1">
+                        <span>📸</span> ជំហានទី ២៖ ផ្ញើវិក្កយបត្រដើម្បីផ្ទៀងផ្ទាត់
+                    </div>
+                    
+                    <input type="file" id="receiptFileInput" accept="image/*" class="hidden" onchange="handleReceiptFileSelect(event)">
+                    
+                    <!-- File picker preview box -->
+                    <div id="receiptPreviewBox" onclick="document.getElementById('receiptFileInput').click()" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-3 text-center cursor-pointer bg-slate-950/60 transition-all mb-2.5">
+                        <div id="receiptPromptText" class="space-y-1">
+                            <span class="text-2xl">📤</span>
+                            <p class="text-xs text-slate-300 font-semibold">ចុចទីនេះដើម្បីជ្រើសរើសរូបភាពវិក្កយបត្រ</p>
+                            <p class="text-[10px] text-slate-500">គាំទ្ររូបភាព Screenshot (JPG, PNG)</p>
+                        </div>
+                        <div id="receiptChosenView" class="hidden flex items-center gap-2 text-left">
+                            <img id="receiptThumbnail" src="" class="w-12 h-12 object-cover rounded-lg border border-slate-700 shrink-0">
+                            <div class="min-w-0 flex-1">
+                                <p id="receiptFileName" class="text-xs text-white font-semibold truncate">receipt.jpg</p>
+                                <p class="text-[10px] text-emerald-400">✅ បានជ្រើសរើសរួចរាល់</p>
+                            </div>
+                            <span class="text-xs text-blue-400 font-bold">ប្ដូរ</span>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button id="submitReceiptBtn" onclick="submitReceiptToAdmin()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all opacity-50 pointer-events-none">
+                        <span>🚀</span> បញ្ជូនវិក្កយបត្រទៅកាន់ Admin
+                    </button>
+                </div>
+            </div>
+
+            <!-- State B: Waiting for Admin Approval -->
+            <div id="paymentWaitingState" class="hidden py-6 text-center space-y-3">
+                <div class="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border-2 border-amber-500 flex items-center justify-center text-3xl animate-bounce">
+                    ⏳
+                </div>
+                <h3 class="font-bold text-base text-white">វិក្កយបត្រត្រូវបានបញ្ជូនរួចរាល់!</h3>
+                <p class="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto">
+                    Admin កំពុងផ្ទៀងផ្ទាត់ក្នុង App ABA។ ប្រព័ន្ធនឹង <strong class="text-amber-400">Unlock ដោយស្វ័យប្រវត្តិ</strong> ភ្លាមៗបន្ទាប់ពី Admin ចុចអនុម័ត (ប្រហែល ១-៣ នាទី)។
+                </p>
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-[11px] text-slate-400 flex items-center justify-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>ប្រព័ន្ធកំពុងរង់ចាំការអនុម័តពី Admin...</span>
+                </div>
+                <button onclick="closeModal('paymentModal')" class="bg-slate-800 text-slate-300 font-bold text-xs py-2 px-5 rounded-xl border border-slate-700">
+                    បិទផ្ទាំងនេះសិន
                 </button>
             </div>
+
         </div>
     </div>
 
@@ -601,6 +649,8 @@
         const user = tg?.initDataUnsafe?.user;
         let isVip = false;
         let currentPayingItem = { title: "Master Prompts សម្រាប់បង្កើតវីដេអូ AI", amount: "$2.00" };
+        let selectedReceiptBase64 = null;
+        let approvalCheckTimer = null;
 
         // Prompts Database
         const promptsData = {
@@ -658,7 +708,7 @@
 
         let currentActivePromptKey = 'vip-video';
 
-        // ២. អាប់ដេតព័ត៌មានអ្នកប្រើប្រាស់តាមគណនី Telegram ជាក់ស្ដែង (Dynamic User Profile)
+        // ២. អាប់ដេតព័ត៌មានអ្នកប្រើប្រាស់តាមគណនី Telegram ជាក់ស្ដែង
         function initUserProfile() {
             if (user && user.id) {
                 const fullName = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : '');
@@ -684,17 +734,7 @@
                 }
 
                 // Check VIP & Orders from backend
-                fetch('/api/status/' + user.id)
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.isVip) {
-                            setVipActive();
-                        }
-                        if (data.orders && data.orders.length > 0) {
-                            saveOrdersToStorage(data.orders);
-                        }
-                    })
-                    .catch(function(e) { console.log('Status fetch error:', e); });
+                checkBackendStatus();
             } else {
                 document.getElementById('userName').innerText = 'ភ្ញៀវ (Guest)';
                 document.getElementById('userId').innerText = 'ID: Telegram Mini App';
@@ -703,6 +743,30 @@
                 document.getElementById('userInitial').innerText = 'G';
                 document.getElementById('profileInitial').innerText = 'G';
             }
+        }
+
+        function checkBackendStatus() {
+            if (!user || !user.id) return;
+            fetch('/api/status/' + user.id)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.isVip) {
+                        setVipActive();
+                        if (approvalCheckTimer) {
+                            clearInterval(approvalCheckTimer);
+                            approvalCheckTimer = null;
+                            closeModal('paymentModal');
+                            showToast('🎉 អបអរសាទរ! វិក្កយបត្រត្រូវបាន Admin អនុម័តរួចរាល់!');
+                            setTimeout(function() {
+                                openPromptViewer(currentActivePromptKey);
+                            }, 500);
+                        }
+                    }
+                    if (data.orders && data.orders.length > 0) {
+                        saveOrdersToStorage(data.orders);
+                    }
+                })
+                .catch(function(e) { console.log('Status fetch error:', e); });
         }
 
         initUserProfile();
@@ -819,11 +883,16 @@
             }
         }
 
-        // ៥. Modals & Payments (ABA QR Code)
+        // ៥. Modals & Receipt Upload System
         function openPaymentModal(title, amount) {
             currentPayingItem = { title: title || 'VIP Package', amount: amount || '$2.00' };
             document.getElementById('paymentModalItemTitle').innerText = currentPayingItem.title;
             document.getElementById('paymentModalAmount').innerText = currentPayingItem.amount;
+
+            // Reset modal states
+            document.getElementById('paymentFormState').classList.remove('hidden');
+            document.getElementById('paymentWaitingState').classList.add('hidden');
+            resetReceiptPicker();
 
             var m = document.getElementById('paymentModal');
             m.classList.remove('opacity-0', 'pointer-events-none');
@@ -832,6 +901,10 @@
         function closeModal(id) {
             var el = document.getElementById(id);
             if (el) el.classList.add('opacity-0', 'pointer-events-none');
+            if (approvalCheckTimer) {
+                clearInterval(approvalCheckTimer);
+                approvalCheckTimer = null;
+            }
         }
 
         function openTermsModal() {
@@ -857,45 +930,85 @@
             }
         }
 
-        // បន្ទាប់ពីបង់ប្រាក់រួច ចុចបញ្ជាក់ => Unlock => អនុញ្ញាតឱ្យមើល និង Copy Prompt ភ្លាមៗ!
-        function confirmCurrentPayment() {
-            var confirmMsg = "តើអ្នកបានទូទាត់ប្រាក់ " + currentPayingItem.amount + " តាម ABA រួចរាល់ហើយមែនទេ?";
-            var doConfirm = function() {
-                var userId = user?.id || 'guest_' + Date.now();
-                fetch('/api/upgrade', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: userId,
-                        itemTitle: currentPayingItem.title,
-                        amount: currentPayingItem.amount
-                    })
-                })
-                .then(function(r) { return r.json(); })
-                .then(function() {
-                    setVipActive();
-                    recordLocalOrder(currentPayingItem.title, currentPayingItem.amount);
-                    closeModal('paymentModal');
-                    showToast('🎉 ទូទាត់ជោគជ័យ! Master Prompt បាន Unlock រួចរាល់');
-                    setTimeout(function() {
-                        openPromptViewer(currentActivePromptKey);
-                    }, 400);
-                })
-                .catch(function() {
-                    setVipActive();
-                    recordLocalOrder(currentPayingItem.title, currentPayingItem.amount);
-                    closeModal('paymentModal');
-                    openPromptViewer(currentActivePromptKey);
-                });
-            };
+        function handleReceiptFileSelect(event) {
+            var file = event.target.files[0];
+            if (!file) return;
 
-            if (tg && typeof tg.showConfirm === 'function') {
-                tg.showConfirm(confirmMsg, function(agreed) {
-                    if (agreed) doConfirm();
-                });
-            } else {
-                if (confirm(confirmMsg)) doConfirm();
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                selectedReceiptBase64 = e.target.result;
+                document.getElementById('receiptPromptText').classList.add('hidden');
+                document.getElementById('receiptChosenView').classList.remove('hidden');
+                document.getElementById('receiptThumbnail').src = selectedReceiptBase64;
+                document.getElementById('receiptFileName').innerText = file.name;
+
+                var submitBtn = document.getElementById('submitReceiptBtn');
+                submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetReceiptPicker() {
+            selectedReceiptBase64 = null;
+            var fileInput = document.getElementById('receiptFileInput');
+            if (fileInput) fileInput.value = '';
+            document.getElementById('receiptPromptText')?.classList.remove('hidden');
+            document.getElementById('receiptChosenView')?.classList.add('hidden');
+            var submitBtn = document.getElementById('submitReceiptBtn');
+            if (submitBtn) submitBtn.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        // បញ្ជូនរូបភាពវិក្កយបត្រទៅកាន់ Admin លើ Telegram ឱ្យពិនិត្យ និងចុច Approve
+        function submitReceiptToAdmin() {
+            if (!selectedReceiptBase64) {
+                alert('សូមជ្រើសរើសរូបភាពវិក្កយបត្រផ្ទេរប្រាក់ជាមុនសិន!');
+                return;
             }
+
+            var userId = user?.id || 'guest_' + Date.now();
+            var userName = (user?.first_name || '') + (user?.last_name ? ' ' + user?.last_name : '');
+            if (!userName.trim()) userName = user?.username || 'Telegram User';
+
+            var submitBtn = document.getElementById('submitReceiptBtn');
+            submitBtn.innerText = 'កំពុងបញ្ជូនទៅ Admin...';
+            submitBtn.classList.add('opacity-50', 'pointer-events-none');
+
+            fetch('/api/submit-receipt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    userName: userName,
+                    itemTitle: currentPayingItem.title,
+                    amount: currentPayingItem.amount,
+                    imageBase64: selectedReceiptBase64
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    // Switch to waiting state
+                    document.getElementById('paymentFormState').classList.add('hidden');
+                    document.getElementById('paymentWaitingState').classList.remove('hidden');
+
+                    showToast('🚀 វិក្កយបត្រត្រូវបានបញ្ជូនទៅ Admin រួចរាល់!');
+
+                    // Start auto-checking if Admin clicks Approve
+                    if (approvalCheckTimer) clearInterval(approvalCheckTimer);
+                    approvalCheckTimer = setInterval(function() {
+                        checkBackendStatus();
+                    }, 3500);
+                } else {
+                    alert('បញ្ជូនបរាជ័យ៖ ' + (res.message || 'សូមព្យាយាមម្ដងទៀត'));
+                    submitBtn.innerText = '🚀 បញ្ជូនវិក្កយបត្រទៅកាន់ Admin';
+                    submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            })
+            .catch(function(err) {
+                alert('មានបញ្ហាក្នុងការបញ្ជូនរូបភាព សូមពិនិត្យអ៊ីនធឺណិត!');
+                submitBtn.innerText = '🚀 បញ្ជូនវិក្កយបត្រទៅកាន់ Admin';
+                submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+            });
         }
 
         // ៦. Orders / History System
@@ -906,7 +1019,7 @@
                 title: title,
                 amount: amount,
                 date: new Date().toLocaleDateString('km-KH'),
-                status: 'ជោគជ័យ (Completed)'
+                status: 'ជោគជ័យ (Approved)'
             });
             var storageKey = user?.id ? 'promptvip_orders_' + user.id : 'promptvip_orders_guest';
             localStorage.setItem(storageKey, JSON.stringify(orders));
