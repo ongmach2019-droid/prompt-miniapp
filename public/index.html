@@ -8,6 +8,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/craftsman-prompt.js"></script>
     <script src="/mom-teaches-prompt.js"></script>
+    <script src="/farm-lifecycle-prompt.js"></script>
     <script src="/master-video-prompt.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -246,6 +247,25 @@
                         <div class="flex items-center justify-between mt-1.5">
                             <span class="text-blue-400 text-xs font-semibold">ឥតគិតថ្លៃ (Free)</span>
                             <button onclick="handlePromptAction('free-2')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
+                                <span>👁️</span> មើល
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Free Prompt: Farm Lifecycle -->
+                <div class="prompt-item free-item bg-[#121929] border border-slate-800/80 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="វីដេអូដាំដំណាំ ពីដីទំនេរដល់លក់ farm lifecycle agriculture free">
+                    <div class="w-20 h-16 rounded-xl overflow-hidden shrink-0 relative border border-blue-500/30">
+                        <img src="/farm-lifecycle-banner.jpg" class="w-full h-full object-cover" alt="Farm Lifecycle">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-xs text-white truncate">
+                            វីដេអូដាំដំណាំ ពីដីទំនេរដល់លក់...
+                        </h4>
+                        <p class="text-[11px] text-slate-400 truncate mt-0.5">AI agricultural documentary farming lifecycle...</p>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span class="text-blue-400 text-xs font-semibold">ឥតគិតថ្លៃ (Free)</span>
+                            <button onclick="handlePromptAction('free-3')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
                                 <span>👁️</span> មើល
                             </button>
                         </div>
@@ -724,6 +744,14 @@
                 banner: "/mom-teaches-banner.jpg",
                 isVip: false,
                 fullPrompt: window.MOM_TEACHES_PROMPT || ''
+            },
+            'free-3': {
+                title: "វីដេអូដាំដំណាំ ពីដីទំនេរដល់លក់...",
+                subtitle: "របៀបធ្វើវីដេអូ ដាំដំណាំ ពីដីទទេដល់លក់ (Farm Lifecycle)",
+                badge: "FREE",
+                banner: "/farm-lifecycle-banner.jpg",
+                isVip: false,
+                fullPrompt: window.FARM_LIFECYCLE_PROMPT || ''
             }
         };
 
@@ -902,7 +930,7 @@
             var fullContainer = document.getElementById('viewerFullPromptContainer');
             var tabbedContainer = document.getElementById('viewerTabbedContainer');
             var fullPre = document.getElementById('fullPromptPre');
-            var fullText = p.fullPrompt || (key === 'free-1' ? window.CRAFTSMAN_PROMPT : (key === 'free-2' ? window.MOM_TEACHES_PROMPT : (key === 'vip-video' ? window.MASTER_VIDEO_PROMPT : '')));
+            var fullText = p.fullPrompt || (key === 'free-1' ? window.CRAFTSMAN_PROMPT : (key === 'free-2' ? window.MOM_TEACHES_PROMPT : (key === 'free-3' ? window.FARM_LIFECYCLE_PROMPT : (key === 'vip-video' ? window.MASTER_VIDEO_PROMPT : ''))));
 
             if (fullText) {
                 fullContainer.classList.remove('hidden');
@@ -1216,7 +1244,7 @@
         function copyCurrentPromptText() {
             var p = promptsData[currentActivePromptKey];
             if (!p) return;
-            var fullText = p.fullPrompt || (currentActivePromptKey === 'free-1' ? window.CRAFTSMAN_PROMPT : (currentActivePromptKey === 'free-2' ? window.MOM_TEACHES_PROMPT : (currentActivePromptKey === 'vip-video' ? window.MASTER_VIDEO_PROMPT : '')));
+            var fullText = p.fullPrompt || (currentActivePromptKey === 'free-1' ? window.CRAFTSMAN_PROMPT : (currentActivePromptKey === 'free-2' ? window.MOM_TEACHES_PROMPT : (currentActivePromptKey === 'free-3' ? window.FARM_LIFECYCLE_PROMPT : (currentActivePromptKey === 'vip-video' ? window.MASTER_VIDEO_PROMPT : ''))));
             if (fullText) {
                 copyText(fullText);
             } else {
