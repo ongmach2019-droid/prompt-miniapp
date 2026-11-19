@@ -6,6 +6,8 @@
     <title>Chet Panha VIP Bot - Mini App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/craftsman-prompt.js"></script>
+    <script src="/master-video-prompt.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -150,16 +152,15 @@
             <div id="promptsListContainer" class="space-y-2.5">
 
                 <!-- 1. Free Prompt: Craftsman -->
-                <div class="prompt-item free-item bg-[#121929] border border-slate-800/80 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ធ្វើវីដេអូ ជាងបង្កើតរបស់ craftsman diy free">
-                    <div class="w-20 h-16 rounded-xl bg-gradient-to-br from-blue-700 to-indigo-900 flex items-center justify-center text-2xl shrink-0 relative overflow-hidden border border-blue-500/20">
-                        <span class="absolute top-1 left-1 bg-emerald-500 text-slate-950 text-[9px] font-extrabold px-1.5 rounded">FREE</span>
-                        🛠️
+                <div class="prompt-item free-item bg-[#121929] border border-slate-800/80 hover:border-blue-500/40 p-3 rounded-2xl flex items-center gap-3 transition-all" data-title="ធ្វើវីដេអូ ជាងបង្កើតរបស់របរ craftsman diy free">
+                    <div class="w-20 h-16 rounded-xl overflow-hidden shrink-0 relative border border-blue-500/30">
+                        <img src="/craftsman-banner.jpg" class="w-full h-full object-cover" alt="Craftsman DIY">
                     </div>
                     <div class="flex-1 min-w-0">
                         <h4 class="font-bold text-xs text-white truncate">
-                            ធ្វើវីដេអូ ជាងបង្កើតរបស់...
+                            ធ្វើវីដេអូ ជាងបង្កើតរបស់របរ...
                         </h4>
-                        <p class="text-[11px] text-slate-400 truncate mt-0.5">You are an expert AI DIY craftsman...</p>
+                        <p class="text-[11px] text-slate-400 truncate mt-0.5">You are an expert AI DIY...</p>
                         <div class="flex items-center justify-between mt-1.5">
                             <span class="text-blue-400 text-xs font-semibold">ឥតគិតថ្លៃ (Free)</span>
                             <button onclick="handlePromptAction('free-1')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 active:scale-95 transition-all">
@@ -532,81 +533,104 @@
     <div id="promptModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[#121929] border border-slate-700 rounded-3xl w-full max-w-lg p-5 shadow-2xl relative max-h-[92vh] flex flex-col">
             
-            <div class="flex items-start justify-between pb-3 border-b border-slate-800">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span id="viewerBadge" class="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded">VIP</span>
-                        <h3 id="viewerTitle" class="font-bold text-sm text-white">Master Prompts</h3>
-                    </div>
-                    <p id="viewerSubtitle" class="text-xs text-slate-400 mt-0.5">ប្រើប្រាស់ជាមួយ AI Tools</p>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">🎨</span>
+                    <h3 class="font-bold text-sm text-white">ព័ត៌មានលម្អិត Prompt</h3>
                 </div>
-                <button onclick="closeModal('promptModal')" class="text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm shrink-0">
+                <button onclick="closeModal('promptModal')" class="text-slate-400 hover:text-white w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center text-xs shrink-0">
                     ✕
                 </button>
             </div>
 
-            <!-- Viewer Tabs -->
-            <div id="viewerTabsHeader" class="flex gap-1.5 my-3 bg-slate-900/90 p-1 rounded-xl text-xs overflow-x-auto custom-scrollbar shrink-0">
-                <button onclick="switchViewerSubTab('viewHowTo')" id="btnViewHowTo" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold bg-amber-400 text-slate-950 transition-all shrink-0">
-                    📖 របៀបប្រើ
-                </button>
-                <button onclick="switchViewerSubTab('viewPrompt1')" id="btnViewPrompt1" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white transition-all shrink-0">
-                    🎬 Prompt 1
-                </button>
-                <button onclick="switchViewerSubTab('viewPrompt2')" id="btnViewPrompt2" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white transition-all shrink-0">
-                    🎥 Prompt 2
-                </button>
-                <button onclick="switchViewerSubTab('viewTips')" id="btnViewTips" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white transition-all shrink-0">
-                    💡 Tips
-                </button>
-            </div>
-
-            <!-- Viewer Content Box -->
-            <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-xs font-mono leading-relaxed text-slate-200">
+            <!-- Modal Scrollable Body -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar pt-3 space-y-2.5 pr-0.5">
                 
-                <div id="viewHowTo" class="viewer-panel space-y-2 font-sans">
-                    <p class="text-blue-300 font-bold">🚀 របៀបប្រើប្រាស់ Prompt នេះ៖</p>
-                    <div id="howToText" class="text-slate-300 text-xs whitespace-pre-wrap"></div>
+                <!-- Banner Image (if available) -->
+                <div id="viewerBannerContainer" class="hidden">
+                    <img id="viewerBannerImg" src="/craftsman-banner.jpg" class="w-full h-auto max-h-48 rounded-2xl object-cover border border-slate-700/60 shadow-md" alt="Prompt Banner">
                 </div>
 
-                <div id="viewPrompt1" class="viewer-panel hidden space-y-2">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[11px] text-amber-400 font-sans font-bold">Prompt Text:</span>
-                        <button onclick="copyCurrentSubTab('p1')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px] font-sans active:scale-95 transition-all">
-                            📋 Copy
-                        </button>
-                    </div>
-                    <pre class="whitespace-pre-wrap select-all font-mono text-[11px]" id="prompt1Pre"></pre>
+                <!-- Title & Badge Row -->
+                <div class="flex items-center justify-between gap-2">
+                    <h3 id="viewerTitle" class="font-bold text-sm text-white truncate">ធ្វើវីដេអូ ជាងបង្កើតរបស់...</h3>
+                    <span id="viewerBadge" class="bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+                        ✅ បានដោះសោរ
+                    </span>
                 </div>
 
-                <div id="viewPrompt2" class="viewer-panel hidden space-y-2">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[11px] text-amber-400 font-sans font-bold">Prompt Text:</span>
-                        <button onclick="copyCurrentSubTab('p2')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px] font-sans active:scale-95 transition-all">
-                            📋 Copy
-                        </button>
+                <p id="viewerSubtitle" class="text-xs text-slate-400">ខ្លឹមសារ Master Prompt ពេញលេញ៖</p>
+
+                <!-- Mode A: Full Prompt Container -->
+                <div id="viewerFullPromptContainer" class="hidden">
+                    <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 text-xs font-mono leading-relaxed text-slate-200">
+                        <pre id="fullPromptPre" class="whitespace-pre-wrap select-all font-mono text-[11px] max-h-[46vh] overflow-y-auto custom-scrollbar"></pre>
                     </div>
-                    <pre class="whitespace-pre-wrap select-all font-mono text-[11px]" id="prompt2Pre"></pre>
                 </div>
 
-                <div id="viewTips" class="viewer-panel hidden space-y-2">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[11px] text-amber-400 font-sans font-bold">Tips Text:</span>
-                        <button onclick="copyCurrentSubTab('tips')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px] font-sans active:scale-95 transition-all">
-                            📋 Copy
+                <!-- Mode B: Tabbed Container (for multi-part prompts) -->
+                <div id="viewerTabbedContainer" class="hidden space-y-3">
+                    <div id="viewerTabsHeader" class="flex gap-1.5 bg-slate-900/90 p-1 rounded-xl text-xs overflow-x-auto custom-scrollbar shrink-0">
+                        <button onclick="switchViewerSubTab('viewHowTo')" id="btnViewHowTo" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold bg-amber-400 text-slate-950 transition-all shrink-0">
+                            📖 របៀបប្រើ
+                        </button>
+                        <button onclick="switchViewerSubTab('viewPrompt1')" id="btnViewPrompt1" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white transition-all shrink-0">
+                            🎬 Prompt 1
+                        </button>
+                        <button onclick="switchViewerSubTab('viewPrompt2')" id="btnViewPrompt2" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white transition-all shrink-0">
+                            🎥 Prompt 2
+                        </button>
+                        <button onclick="switchViewerSubTab('viewTips')" id="btnViewTips" class="viewer-subtab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white transition-all shrink-0">
+                            💡 Tips
                         </button>
                     </div>
-                    <pre class="whitespace-pre-wrap select-all font-mono text-[11px]" id="tipsPre"></pre>
+
+                    <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 text-xs font-mono leading-relaxed text-slate-200 max-h-[42vh] overflow-y-auto custom-scrollbar">
+                        <div id="viewHowTo" class="viewer-panel space-y-2 font-sans">
+                            <p class="text-blue-300 font-bold">🚀 របៀបប្រើប្រាស់ Prompt នេះ៖</p>
+                            <div id="howToText" class="text-slate-300 text-xs whitespace-pre-wrap"></div>
+                        </div>
+
+                        <div id="viewPrompt1" class="viewer-panel hidden space-y-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[11px] text-amber-400 font-sans font-bold">Prompt Text:</span>
+                                <button onclick="copyCurrentSubTab('p1')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px] font-sans active:scale-95 transition-all">
+                                    📋 Copy
+                                </button>
+                            </div>
+                            <pre class="whitespace-pre-wrap select-all font-mono text-[11px]" id="prompt1Pre"></pre>
+                        </div>
+
+                        <div id="viewPrompt2" class="viewer-panel hidden space-y-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[11px] text-amber-400 font-sans font-bold">Prompt Text:</span>
+                                <button onclick="copyCurrentSubTab('p2')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px] font-sans active:scale-95 transition-all">
+                                    📋 Copy
+                                </button>
+                            </div>
+                            <pre class="whitespace-pre-wrap select-all font-mono text-[11px]" id="prompt2Pre"></pre>
+                        </div>
+
+                        <div id="viewTips" class="viewer-panel hidden space-y-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[11px] text-amber-400 font-sans font-bold">Tips Text:</span>
+                                <button onclick="copyCurrentSubTab('tips')" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px] font-sans active:scale-95 transition-all">
+                                    📋 Copy
+                                </button>
+                            </div>
+                            <pre class="whitespace-pre-wrap select-all font-mono text-[11px]" id="tipsPre"></pre>
+                        </div>
+                    </div>
                 </div>
 
             </div>
 
             <!-- Viewer Footer -->
             <div class="pt-3 border-t border-slate-800 flex gap-2 shrink-0">
-                <button onclick="copyFullPromptPackage()" class="flex-1 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-slate-950 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all">
-                    📋 ចម្លងទាំងអស់ (Copy All)
+                <button id="viewerMainCopyBtn" onclick="copyCurrentPromptText()" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md">
+                    📋 ចម្លង Master Prompt នេះ (Copy Prompt)
                 </button>
-                <button onclick="closeModal('promptModal')" class="bg-slate-800 text-slate-300 font-semibold text-xs py-2.5 px-4 rounded-xl border border-slate-700">
+                <button onclick="closeModal('promptModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs py-2.5 px-4 rounded-xl border border-slate-700 active:scale-95 transition-all">
                     បិទ
                 </button>
             </div>
@@ -659,6 +683,7 @@
                 subtitle: "Story to Full Video Package (Sora/Kling/Veo/CapCut)",
                 badge: "VIP $2.00",
                 isVip: true,
+                fullPrompt: window.MASTER_VIDEO_PROMPT || '',
                 howTo: "១. Copy Prompt 1 ដាក់ ChatGPT/Claude ដើម្បីបានប្លង់រឿង\n២. ថតសម្លេង Voiceover MP3\n៣. ប្រើ Prompt 2 Animate រូបភាពក្នុង Sora/Kling/Veo\n៤. កាត់តក្នុង CapCut",
                 p1: "You are an expert AI video director and prompt engineer.\nTurn my story into a complete production package for AI video generation.\n\nSTORY / TOPIC: [paste story or question, e.g. \"Why does it rain?\"]\nVIDEO TYPE: [2D flat explainer / luxury product commercial / cinematic story]\nSTYLE: [e.g. flat 2D vector, limited navy-teal palette, soft gradients, simple shapes]\nASPECT RATIO: [9:16 for Reels/TikTok, or 16:9]\nTOTAL LENGTH: [e.g. 40 seconds]\nNUMBER OF SCENES: [e.g. 8]\nVOICEOVER LANGUAGE: [Khmer]\nAUDIENCE: [e.g. general Cambodian audience, beginners]\nTEXT ON SCREEN: [none / Khmer subtitles only]\nREFERENCE IMAGE: [yes - keep design identical / no]\n\nDeliver in this order:\n1. CONCEPT (2 sentences)\n2. STYLE BIBLE & CONSISTENCY LINE\n3. SCENE TABLE (#, time, visual, camera move, voiceover)\n4. FOR EACH SCENE: Image Prompt + Video Prompt\n5. NEGATIVE PROMPT\n6. AUDIO PLAN (voice style, music, SFX)\n7. EDIT PLAN (CapCut)\n8. PUBLISHING (title, description, 10 hashtags)",
                 p2: "[CONSISTENCY LINE]\nScene: [what we see - subject, action, environment].\nCamera: [one move, e.g. slow push-in / slow pan left to right].\nMotion: [what moves - rain dots falling, light sweep, leaves drifting], slow and smooth.\nLighting: [soft key light from left, rim light, sunbeam].\nStyle: [flat 2D vector animation / cinematic photoreal].\nFormat: [9:16], 5 seconds, 24fps, one continuous shot, no cuts.\nNegative: blurry, distorted, warped shapes, flickering, extra fingers, text, watermark, logo, oversaturated, low quality, style change between frames.",
@@ -686,13 +711,11 @@
             },
             'free-1': {
                 title: "ធ្វើវីដេអូ ជាងបង្កើតរបស់...",
-                subtitle: "Free Craftsman DIY Prompt",
+                subtitle: "របៀបធ្វើវីដេអូ ជាងបង្កើតរបស់របរ (DIY Build)",
                 badge: "FREE",
+                banner: "/craftsman-banner.jpg",
                 isVip: false,
-                howTo: "ចម្លង Prompt នេះយកទៅដាក់ក្នុង Midjourney, Leonardo AI ឬ Sora/Kling",
-                p1: "Cinematic close-up video of an experienced Cambodian craftsman carving wood in a traditional workshop, warm afternoon sunlight beams through windows, high detail, dust particles floating, 4k 60fps.",
-                p2: "Slow camera push-in towards the craftsman's hands carving intricate wooden floral patterns, smooth motion, natural bokeh.",
-                tips: "អាចបន្ថែមពាក្យ 'photorealistic 8k' ដើម្បីឱ្យរូបកាន់តែច្បាស់។"
+                fullPrompt: window.CRAFTSMAN_PROMPT || ''
             },
             'free-2': {
                 title: "ធ្វើវីដេអូ Ai ម៉ាក់ៗបង្រៀន...",
@@ -700,7 +723,7 @@
                 badge: "FREE",
                 isVip: false,
                 howTo: "ចម្លង Prompt នេះទៅប្រើសម្រាប់វីដេអូបង្រៀនកុមារ",
-                p1: "Friendly Asian mother sitting with her kid at a modern desk, teaching enthusiastically with colorful 3D floating educational graphics, bright soft lighting, cheerful atmosphere, 9:16 vertical format.",
+                p1: "Friendly Asian mother sitting with her kid at a modern desk, teaching enthusiastically with colorful 3D educational graphics, bright soft lighting, cheerful atmosphere, 9:16 vertical format.",
                 p2: "Gentle pan shot of mother smiling and gesturing towards a glowing 3D alphabet letter, vibrant colors, child clapping happily.",
                 tips: "ស័ក្តិសមបំផុតសម្រាប់ធ្វើវីដេអូ Reels និង TikTok កុមារ។"
             }
@@ -855,14 +878,48 @@
             currentActivePromptKey = key;
 
             document.getElementById('viewerTitle').innerText = p.title;
-            document.getElementById('viewerSubtitle').innerText = p.subtitle;
-            document.getElementById('viewerBadge').innerText = p.badge;
-            document.getElementById('howToText').innerText = p.howTo;
-            document.getElementById('prompt1Pre').innerText = p.p1;
-            document.getElementById('prompt2Pre').innerText = p.p2;
-            document.getElementById('tipsPre').innerText = p.tips;
+            document.getElementById('viewerSubtitle').innerText = p.subtitle || 'ខ្លឹមសារ Master Prompt ពេញលេញ៖';
 
-            switchViewerSubTab('viewHowTo');
+            // Unlock badge
+            var badgeEl = document.getElementById('viewerBadge');
+            if (p.isVip && !isVip) {
+                badgeEl.className = "bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded";
+                badgeEl.innerText = p.badge;
+            } else {
+                badgeEl.className = "bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0";
+                badgeEl.innerText = "✅ បានដោះសោរ";
+            }
+
+            // Banner Image
+            var bannerContainer = document.getElementById('viewerBannerContainer');
+            var bannerImg = document.getElementById('viewerBannerImg');
+            if (p.banner) {
+                bannerImg.src = p.banner;
+                bannerContainer.classList.remove('hidden');
+            } else {
+                bannerContainer.classList.add('hidden');
+            }
+
+            // Check fullPrompt mode or tabbed mode
+            var fullContainer = document.getElementById('viewerFullPromptContainer');
+            var tabbedContainer = document.getElementById('viewerTabbedContainer');
+            var fullPre = document.getElementById('fullPromptPre');
+            var fullText = p.fullPrompt || (key === 'free-1' ? window.CRAFTSMAN_PROMPT : (key === 'vip-video' ? window.MASTER_VIDEO_PROMPT : ''));
+
+            if (fullText) {
+                fullContainer.classList.remove('hidden');
+                tabbedContainer.classList.add('hidden');
+                fullPre.innerText = fullText;
+            } else {
+                fullContainer.classList.add('hidden');
+                tabbedContainer.classList.remove('hidden');
+                document.getElementById('howToText').innerText = p.howTo || '';
+                document.getElementById('prompt1Pre').innerText = p.p1 || '';
+                document.getElementById('prompt2Pre').innerText = p.p2 || '';
+                document.getElementById('tipsPre').innerText = p.tips || '';
+                switchViewerSubTab('viewHowTo');
+            }
+
             var m = document.getElementById('promptModal');
             m.classList.remove('opacity-0', 'pointer-events-none');
         }
@@ -1156,6 +1213,17 @@
             if (!p) return;
             var full = '=== ' + p.title + ' ===\n\n[របៀបប្រើប្រាស់]:\n' + p.howTo + '\n\n[PROMPT 1: Story to Full Video Package]:\n' + p.p1 + '\n\n[PROMPT 2: One Scene for Video Tool]:\n' + p.p2 + '\n\n[CONSISTENCY LINES & TIPS]:\n' + p.tips;
             copyText(full);
+        }
+
+        function copyCurrentPromptText() {
+            var p = promptsData[currentActivePromptKey];
+            if (!p) return;
+            var fullText = p.fullPrompt || (currentActivePromptKey === 'free-1' ? window.CRAFTSMAN_PROMPT : (currentActivePromptKey === 'vip-video' ? window.MASTER_VIDEO_PROMPT : ''));
+            if (fullText) {
+                copyText(fullText);
+            } else {
+                copyFullPromptPackage();
+            }
         }
 
         function showToast(msg) {
